@@ -3,14 +3,16 @@ package com.acpdq.dscatalog.services;
 import com.acpdq.dscatalog.dto.CategoryDTO;
 import com.acpdq.dscatalog.entities.Category;
 import com.acpdq.dscatalog.repositories.CategoryRepository;
+import com.acpdq.dscatalog.services.exceptions.DatabaseException;
 import com.acpdq.dscatalog.services.exceptions.ResourceNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class CategoryService {
@@ -46,6 +48,18 @@ public class CategoryService {
             return new CategoryDTO( categoryRepository.save(entity) );
         } catch (EntityNotFoundException e) {
             throw new ResourceNotFoundException("Id = " + id + " not found");
+        }
+    }
+
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public void delete(Long id) {
+        if ( !categoryRepository.existsById(id) )
+            throw new ResourceNotFoundException("Id = " + id + " not found");
+
+        try {
+            categoryRepository.deleteById(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new DatabaseException("Referential integrity failure");
         }
     }
 }
